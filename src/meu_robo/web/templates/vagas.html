@@ -45,7 +45,7 @@
     </label>
     <label>
       Texto
-      <input name="texto" value="{{ filtros.texto }}" placeholder="URL ou título">
+      <input name="texto" value="{{ filtros.texto }}" placeholder="URL, título, empresa ou descrição">
     </label>
     <div class="actions">
       <button type="submit">Filtrar</button>
@@ -67,7 +67,8 @@
     <thead>
       <tr>
         <th>ID</th>
-        <th>URL</th>
+        <th>Vaga</th>
+        <th>Extração</th>
         <th>Plataforma</th>
         <th>Status</th>
         <th>Nota</th>
@@ -80,7 +81,32 @@
       {% for vaga in vagas %}
       <tr>
         <td>{{ vaga.id }}</td>
-        <td><a href="{{ vaga.url }}" target="_blank" rel="noreferrer">{{ vaga.url }}</a></td>
+        <td class="job-cell">
+          <a href="{{ vaga.url }}" target="_blank" rel="noreferrer">{{ vaga.titulo_vaga or vaga.url }}</a>
+          {% if vaga.empresa %}
+            <div class="muted">{{ vaga.empresa }}</div>
+          {% endif %}
+          {% if vaga.localidade_extraida %}
+            <div class="muted">{{ vaga.localidade_extraida }}</div>
+          {% endif %}
+          {% if vaga.descricao_vaga %}
+            <details>
+              <summary>Ver trecho coletado</summary>
+              <p>{{ vaga.descricao_vaga[:800] }}{{ "..." if vaga.descricao_vaga|length > 800 else "" }}</p>
+            </details>
+          {% endif %}
+        </td>
+        <td>
+          {% if vaga.conteudo_extraido_em %}
+            <span>{{ "OK" if vaga.url_acessivel else "Falhou" }}</span>
+            <div class="muted">{{ vaga.conteudo_extraido_em }}</div>
+            {% if vaga.erro_extracao %}
+              <div class="error">{{ vaga.erro_extracao }}</div>
+            {% endif %}
+          {% else %}
+            <span class="muted">Pendente</span>
+          {% endif %}
+        </td>
         <td>{{ vaga.plataforma }}</td>
         <td>
           <form method="post" action="/vagas/{{ vaga.id }}/status">

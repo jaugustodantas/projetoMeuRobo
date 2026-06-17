@@ -50,6 +50,12 @@ CREATE TABLE IF NOT EXISTS vagas (
     id BIGSERIAL PRIMARY KEY,
     url TEXT NOT NULL,
     titulo_vaga TEXT,
+    empresa TEXT,
+    localidade_extraida TEXT,
+    descricao_vaga TEXT,
+    conteudo_extraido_em TIMESTAMPTZ,
+    url_acessivel BOOLEAN,
+    erro_extracao TEXT,
     plataforma TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'encontrada',
     nota_aderencia INTEGER,
@@ -99,6 +105,9 @@ CREATE INDEX IF NOT EXISTS idx_vagas_plataforma
 
 CREATE INDEX IF NOT EXISTS idx_vagas_nota_aderencia
     ON vagas (nota_aderencia);
+
+CREATE INDEX IF NOT EXISTS idx_vagas_url_acessivel
+    ON vagas (url_acessivel);
 
 CREATE INDEX IF NOT EXISTS idx_vagas_encontrada_em
     ON vagas (encontrada_em);

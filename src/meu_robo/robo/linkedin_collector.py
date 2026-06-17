@@ -5,7 +5,11 @@ from playwright.async_api import Page, async_playwright
 
 from meu_robo.config import get_browser_session_path, get_linkedin_credentials
 from meu_robo.repositories import execucoes_repository, localidades_repository, titulos_repository
-from meu_robo.repositories.vagas_repository import normalizar_url, salvar_vaga
+from meu_robo.repositories.vagas_repository import (
+    atualizar_dados_extraidos,
+    normalizar_url,
+    salvar_vaga,
+)
 
 LINKEDIN_SEARCH_URL = "https://www.linkedin.com/jobs/search/"
 MAX_PAGES_PER_COMBINATION = 3
@@ -20,6 +24,14 @@ def _build_search_url(titulo: str, localidade: str, page_index: int) -> str:
         f"&location={quote_plus(localidade)}"
         f"&start={start}"
     )
+
+
+def _clean_text(text: str | None) -> str | None:
+    if not text:
+        return None
+
+    cleaned = " ".join(text.split())
+    return cleaned or None
 
 
 async def _is_login_or_challenge_page(page: Page) -> bool:
@@ -101,7 +113,7 @@ async def _collect_urls_from_current_page(page: Page) -> list[str]:
         pass
 
     urls = await page.locator(
-        "a[href*='/jobs/view/'], a[href*='currentJobId=']"
+        "a[href*='/jobs/view/'], a[href*='currentJobId='], a[href*='/jobs-guest/jobs/api/jobPosting/']"
     ).evaluate_all(
         """
         elements => elements
@@ -122,6 +134,106 @@ async def _collect_urls_from_current_page(page: Page) -> list[str]:
         normalized.append(normalized_url)
 
     return normalized
+
+
+async def _first_text(page: Page, selectors: list[str]) -> str | None:
+    for selector in selectors:
+        try:
+            locator = page.locator(selector).first
+            if await locator.count() == 0:
+                continue
+            text = _clean_text(await locator.inner_text(timeout=3000))
+            if text:
+                return text
+        except Exception:
+            continue
+    return None
+
+
+async def _click_show_more_if_available(page: Page) -> None:
+    selectors = [
+        "button[aria-label*='ver mais']",
+        "button[aria-label*='Ver mais']",
+        "button[aria-label*='Show more']",
+        "button:has-text('ver mais')",
+        "button:has-text('Ver mais')",
+        "button:has-text('Show more')",
+        ".jobs-description__footer-button",
+    ]
+
+    for selector in selectors:
+        try:
+            button = page.locator(selector).first
+            if await button.count() == 0:
+                continue
+            await button.click(timeout=2000)
+            await asyncio.sleep(1)
+            return
+        except Exception:
+            continue
+
+
+async def _extract_job_details(page: Page, url: str) -> dict:
+    await page.goto(url, wait_until="domcontentloaded")
+    await _wait_for_manual_challenge_if_needed(page)
+    await asyncio.sleep(2)
+    await _click_show_more_if_available(page)
+
+    titulo = await _first_text(
+        page,
+        [
+            ".job-details-jobs-unified-top-card__job-title",
+            ".job-details-jobs-unified-top-card__job-title h1",
+            ".top-card-layout__title",
+            "h1",
+        ],
+    )
+    empresa = await _first_text(
+        page,
+        [
+            ".job-details-jobs-unified-top-card__company-name a",
+            ".job-details-jobs-unified-top-card__company-name",
+            ".topcard__org-name-link",
+            ".topcard__flavor",
+        ],
+    )
+    localidade = await _first_text(
+        page,
+        [
+            ".job-details-jobs-unified-top-card__primary-description-container",
+            ".job-details-jobs-unified-top-card__bullet",
+            ".topcard__flavor--bullet",
+        ],
+    )
+    descricao = await _first_text(
+        page,
+        [
+            ".jobs-description__content",
+            ".jobs-box__html-content",
+            "#job-details",
+            ".show-more-less-html__markup",
+            ".description__text",
+        ],
+    )
+
+    if not descricao:
+        return {
+            "titulo_vaga": titulo,
+            "empresa": empresa,
+            "localidade_extraida": localidade,
+            "descricao_vaga": None,
+            "url_acessivel": False,
+            "erro_extracao": "Conteudo principal da vaga nao encontrado.",
+        }
+
+    return {
+        "titulo_vaga": titulo,
+        "empresa": empresa,
+        "localidade_extraida": localidade,
+        "descricao_vaga": descricao,
+        "url_acessivel": True,
+        "erro_extracao": None,
+    }
 
 
 async def executar_coleta_linkedin() -> dict[str, int]:
@@ -180,13 +292,24 @@ async def executar_coleta_linkedin() -> dict[str, int]:
 
                         for url in urls:
                             vagas_encontradas += 1
-                            _, created = salvar_vaga(
+                            vaga_id, created = salvar_vaga(
                                 url=url,
                                 plataforma="linkedin",
                                 titulo_busca_id=titulo["id"],
                                 localidade_busca_id=localidade["id"],
                                 execucao_robo_id=execucao_id,
                             )
+
+                            try:
+                                dados_extraidos = await _extract_job_details(page, url)
+                                atualizar_dados_extraidos(vaga_id, **dados_extraidos)
+                            except Exception as exc:
+                                atualizar_dados_extraidos(
+                                    vaga_id,
+                                    url_acessivel=False,
+                                    erro_extracao=str(exc),
+                                )
+
                             if created:
                                 vagas_novas += 1
                             else:

@@ -15,6 +15,13 @@ def exportar_vagas_excel(filtros: dict | None = None) -> str:
     headers = [
         "ID",
         "URL",
+        "Titulo extraido",
+        "Empresa",
+        "Localidade extraida",
+        "Descricao",
+        "Conteudo extraido em",
+        "URL acessivel",
+        "Erro extracao",
         "Plataforma",
         "Status",
         "Nota",
@@ -29,6 +36,15 @@ def exportar_vagas_excel(filtros: dict | None = None) -> str:
             [
                 vaga["id"],
                 vaga["url"],
+                vaga["titulo_vaga"],
+                vaga["empresa"],
+                vaga["localidade_extraida"],
+                vaga["descricao_vaga"],
+                vaga["conteudo_extraido_em"].strftime("%Y-%m-%d %H:%M:%S")
+                if vaga["conteudo_extraido_em"]
+                else "",
+                vaga["url_acessivel"],
+                vaga["erro_extracao"],
                 vaga["plataforma"],
                 vaga["status"],
                 vaga["nota_aderencia"],

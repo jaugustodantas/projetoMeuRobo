@@ -1,6 +1,7 @@
 # Projeto Meu Robo
 
 Ferramenta local para coletar URLs de vagas, salvar no PostgreSQL e acompanhar candidaturas por status e nota.
+O robô também abre cada vaga no Chromium logado e salva o conteúdo principal para análise posterior por IA.
 
 ## Rodar a interface
 
@@ -24,6 +25,7 @@ http://127.0.0.1:8000
 4. Se `LINKEDIN_EMAIL` e `LINKEDIN_PASSWORD` estiverem configurados no `.env`, o robô tenta fazer o login.
 5. Se o Chromium abrir pedindo login, 2FA ou verificação, resolva manualmente.
 6. O robô aguarda até 10 minutos e salva a sessão em `browser_session/`.
+7. Para cada vaga encontrada, o robô tenta salvar título, empresa, localidade e descrição no banco.
 
 ## Banco
 
@@ -39,6 +41,12 @@ O schema inicial está em:
 
 ```text
 database/001_create_initial_schema.sql
+```
+
+Migrations incrementais:
+
+```text
+database/002_add_job_extracted_content.sql
 ```
 
 ## Exportação

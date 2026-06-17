@@ -1,4 +1,4 @@
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from psycopg import sql
 
@@ -18,13 +18,24 @@ def normalizar_url(url: str) -> str:
     url = url.strip()
     parsed = urlparse(url)
 
+    if "linkedin.com" in parsed.netloc:
+        current_job_id = parse_qs(parsed.query).get("currentJobId", [""])[0]
+        if current_job_id.isdigit():
+            return f"https://www.linkedin.com/jobs/view/{current_job_id}"
+
     if "linkedin.com" in parsed.netloc and "/jobs/view/" in parsed.path:
         parts = [part for part in parsed.path.split("/") if part]
         try:
             job_id = parts[parts.index("view") + 1]
-            return f"https://www.linkedin.com/jobs/view/{job_id}"
+            if job_id.isdigit():
+                return f"https://www.linkedin.com/jobs/view/{job_id}"
         except (ValueError, IndexError):
             return url.split("?", 1)[0].rstrip("/")
+
+    if "linkedin.com" in parsed.netloc and "/jobs-guest/jobs/api/jobPosting/" in parsed.path:
+        job_id = parsed.path.rstrip("/").split("/")[-1]
+        if job_id.isdigit():
+            return f"https://www.linkedin.com/jobs/view/{job_id}"
 
     return url.split("?", 1)[0].rstrip("/")
 
@@ -104,6 +115,42 @@ def atualizar_nota(vaga_id: int, nota_aderencia: int | None) -> None:
             )
 
 
+def atualizar_dados_extraidos(
+    vaga_id: int,
+    titulo_vaga: str | None = None,
+    empresa: str | None = None,
+    localidade_extraida: str | None = None,
+    descricao_vaga: str | None = None,
+    url_acessivel: bool | None = None,
+    erro_extracao: str | None = None,
+) -> None:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE vagas
+                SET titulo_vaga = COALESCE(%s, titulo_vaga),
+                    empresa = %s,
+                    localidade_extraida = %s,
+                    descricao_vaga = %s,
+                    conteudo_extraido_em = NOW(),
+                    url_acessivel = %s,
+                    erro_extracao = %s,
+                    atualizada_em = NOW()
+                WHERE id = %s
+                """,
+                (
+                    titulo_vaga,
+                    empresa,
+                    localidade_extraida,
+                    descricao_vaga,
+                    url_acessivel,
+                    erro_extracao,
+                    vaga_id,
+                ),
+            )
+
+
 def listar_vagas(filtros: dict | None = None) -> list[dict]:
     filtros = filtros or {}
     clauses = []
@@ -130,9 +177,18 @@ def listar_vagas(filtros: dict | None = None) -> list[dict]:
         values.append(int(filtros["nota_minima"]))
 
     if filtros.get("texto"):
-        clauses.append("(v.url ILIKE %s OR COALESCE(v.titulo_vaga, '') ILIKE %s)")
+        clauses.append(
+            """
+            (
+                v.url ILIKE %s
+                OR COALESCE(v.titulo_vaga, '') ILIKE %s
+                OR COALESCE(v.empresa, '') ILIKE %s
+                OR COALESCE(v.descricao_vaga, '') ILIKE %s
+            )
+            """
+        )
         term = f"%{filtros['texto']}%"
-        values.extend([term, term])
+        values.extend([term, term, term, term])
 
     where = sql.SQL("")
     if clauses:
@@ -140,7 +196,9 @@ def listar_vagas(filtros: dict | None = None) -> list[dict]:
 
     query = sql.SQL(
         """
-        SELECT v.id, v.url, v.titulo_vaga, v.plataforma, v.status,
+        SELECT v.id, v.url, v.titulo_vaga, v.empresa, v.localidade_extraida,
+               v.descricao_vaga, v.conteudo_extraido_em, v.url_acessivel,
+               v.erro_extracao, v.plataforma, v.status,
                v.nota_aderencia, v.encontrada_em, v.atualizada_em,
                t.titulo AS titulo_busca,
                l.localidade AS localidade_busca
