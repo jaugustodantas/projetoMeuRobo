@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="grid two">
+  <div class="panel">
+    <h2>Títulos de busca</h2>
+    <form class="inline-form" method="post" action="/titulos">
+      <input name="titulo" placeholder="Ex: Analista" required>
+      <button type="submit">Adicionar</button>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Título</th>
+          <th>Ativo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for titulo in titulos %}
+        <tr>
+          <td>{{ titulo.titulo }}</td>
+          <td>
+            <form method="post" action="/titulos/{{ titulo.id }}/ativo">
+              <input type="hidden" name="ativo" value="{{ 'false' if titulo.ativo else 'true' }}">
+              <button class="link-button" type="submit">
+                {{ "Sim" if titulo.ativo else "Não" }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>Localidades</h2>
+    <form class="inline-form" method="post" action="/localidades">
+      <input name="localidade" placeholder="Ex: Uberlândia, Minas Gerais, Brasil" required>
+      <button type="submit">Adicionar</button>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Localidade</th>
+          <th>Ativa</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for localidade in localidades %}
+        <tr>
+          <td>{{ localidade.localidade }}</td>
+          <td>
+            <form method="post" action="/localidades/{{ localidade.id }}/ativo">
+              <input type="hidden" name="ativo" value="{{ 'false' if localidade.ativo else 'true' }}">
+              <button class="link-button" type="submit">
+                {{ "Sim" if localidade.ativo else "Não" }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Coleta</h2>
+  <p class="muted">A coleta inicial usa LinkedIn, Playwright e Chromium visível. O robô pesquisa as 3 primeiras páginas para cada combinação ativa.</p>
+  <form method="post" action="/coletas/linkedin">
+    <button type="submit">Iniciar coleta LinkedIn</button>
+  </form>
+</section>
+
+<section class="grid two">
+  <div class="panel">
+    <h2>Última execução</h2>
+    {% if ultima_execucao %}
+      <dl class="summary">
+        <dt>ID</dt><dd>{{ ultima_execucao.id }}</dd>
+        <dt>Plataforma</dt><dd>{{ ultima_execucao.plataforma }}</dd>
+        <dt>Status</dt><dd>{{ ultima_execucao.status }}</dd>
+        <dt>Novas</dt><dd>{{ ultima_execucao.vagas_novas }}</dd>
+        <dt>Duplicadas</dt><dd>{{ ultima_execucao.vagas_duplicadas }}</dd>
+        <dt>Encontradas</dt><dd>{{ ultima_execucao.vagas_encontradas }}</dd>
+      </dl>
+      {% if ultima_execucao.mensagem_erro %}
+        <p class="error">{{ ultima_execucao.mensagem_erro }}</p>
+      {% endif %}
+    {% else %}
+      <p class="muted">Nenhuma execução registrada.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Vagas por status</h2>
+    <dl class="summary">
+      {% for status, total in totais_status.items() %}
+        <dt>{{ status }}</dt><dd>{{ total }}</dd>
+      {% endfor %}
+    </dl>
+  </div>
+</section>
+
+{% if erros %}
+<section class="panel">
+  <h2>Erros da última execução</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Quando</th>
+        <th>Título</th>
+        <th>Localidade</th>
+        <th>Erro</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for erro in erros %}
+      <tr>
+        <td>{{ erro.criado_em }}</td>
+        <td>{{ erro.titulo or "-" }}</td>
+        <td>{{ erro.localidade or "-" }}</td>
+        <td>{{ erro.mensagem_erro }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+{% endblock %}

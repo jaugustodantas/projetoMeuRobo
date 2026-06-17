@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel">
+  <h2>Filtros</h2>
+  <form class="filters" method="get" action="/vagas">
+    <label>
+      Status
+      <select name="status">
+        <option value="">Todos</option>
+        {% for status in status_vagas %}
+          <option value="{{ status }}" {{ "selected" if filtros.status == status else "" }}>{{ status }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Plataforma
+      <select name="plataforma">
+        <option value="">Todas</option>
+        <option value="linkedin" {{ "selected" if filtros.plataforma == "linkedin" else "" }}>LinkedIn</option>
+        <option value="indeed" {{ "selected" if filtros.plataforma == "indeed" else "" }}>Indeed</option>
+      </select>
+    </label>
+    <label>
+      Título pesquisado
+      <select name="titulo_busca_id">
+        <option value="">Todos</option>
+        {% for titulo in titulos %}
+          <option value="{{ titulo.id }}" {{ "selected" if filtros.titulo_busca_id|string == titulo.id|string else "" }}>{{ titulo.titulo }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Localidade
+      <select name="localidade_busca_id">
+        <option value="">Todas</option>
+        {% for localidade in localidades %}
+          <option value="{{ localidade.id }}" {{ "selected" if filtros.localidade_busca_id|string == localidade.id|string else "" }}>{{ localidade.localidade }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Nota mínima
+      <input type="number" name="nota_minima" min="0" max="10" value="{{ filtros.nota_minima }}">
+    </label>
+    <label>
+      Texto
+      <input name="texto" value="{{ filtros.texto }}" placeholder="URL ou título">
+    </label>
+    <div class="actions">
+      <button type="submit">Filtrar</button>
+      <a class="button secondary" href="/vagas">Limpar</a>
+      <a class="button" href="/vagas/exportar?status={{ filtros.status }}&plataforma={{ filtros.plataforma }}&titulo_busca_id={{ filtros.titulo_busca_id }}&localidade_busca_id={{ filtros.localidade_busca_id }}&nota_minima={{ filtros.nota_minima }}&texto={{ filtros.texto }}">Exportar Excel</a>
+    </div>
+  </form>
+</section>
+
+<section class="status-strip">
+  {% for status, total in totais_status.items() %}
+    <a href="/vagas?status={{ status }}">{{ status }}: {{ total }}</a>
+  {% endfor %}
+</section>
+
+<section class="panel">
+  <h2>Vagas</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>URL</th>
+        <th>Plataforma</th>
+        <th>Status</th>
+        <th>Nota</th>
+        <th>Título pesquisado</th>
+        <th>Localidade</th>
+        <th>Encontrada em</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for vaga in vagas %}
+      <tr>
+        <td>{{ vaga.id }}</td>
+        <td><a href="{{ vaga.url }}" target="_blank" rel="noreferrer">{{ vaga.url }}</a></td>
+        <td>{{ vaga.plataforma }}</td>
+        <td>
+          <form method="post" action="/vagas/{{ vaga.id }}/status">
+            <select name="status" onchange="this.form.submit()">
+              {% for status in status_vagas %}
+                <option value="{{ status }}" {{ "selected" if vaga.status == status else "" }}>{{ status }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        </td>
+        <td>
+          <form class="note-form" method="post" action="/vagas/{{ vaga.id }}/nota">
+            <input type="number" min="0" max="10" name="nota_aderencia" value="{{ vaga.nota_aderencia if vaga.nota_aderencia is not none else '' }}">
+            <button type="submit">OK</button>
+          </form>
+        </td>
+        <td>{{ vaga.titulo_busca or "-" }}</td>
+        <td>{{ vaga.localidade_busca or "-" }}</td>
+        <td>{{ vaga.encontrada_em }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

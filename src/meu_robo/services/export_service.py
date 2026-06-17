@@ -1,0 +1,50 @@
+from datetime import datetime
+
+from openpyxl import Workbook
+
+from meu_robo.config import get_exports_dir
+from meu_robo.repositories.vagas_repository import listar_vagas
+
+
+def exportar_vagas_excel(filtros: dict | None = None) -> str:
+    vagas = listar_vagas(filtros)
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Vagas"
+
+    headers = [
+        "ID",
+        "URL",
+        "Plataforma",
+        "Status",
+        "Nota",
+        "Titulo pesquisado",
+        "Localidade pesquisada",
+        "Encontrada em",
+    ]
+    sheet.append(headers)
+
+    for vaga in vagas:
+        sheet.append(
+            [
+                vaga["id"],
+                vaga["url"],
+                vaga["plataforma"],
+                vaga["status"],
+                vaga["nota_aderencia"],
+                vaga["titulo_busca"],
+                vaga["localidade_busca"],
+                vaga["encontrada_em"].strftime("%Y-%m-%d %H:%M:%S")
+                if vaga["encontrada_em"]
+                else "",
+            ]
+        )
+
+    for column in sheet.columns:
+        max_length = max(len(str(cell.value or "")) for cell in column)
+        sheet.column_dimensions[column[0].column_letter].width = min(max(max_length + 2, 12), 80)
+
+    filename = f"vagas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    output_path = get_exports_dir() / filename
+    workbook.save(output_path)
+    return str(output_path)

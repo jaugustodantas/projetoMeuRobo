@@ -1,0 +1,189 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: #202124;
+  background: #f6f7f9;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+}
+
+a {
+  color: #0b57d0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #dfe3e8;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 12px;
+}
+
+.container {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panel {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #dfe3e8;
+  border-radius: 6px;
+}
+
+.panel h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.inline-form,
+.filters,
+.note-form,
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.filters label {
+  display: grid;
+  gap: 4px;
+}
+
+input,
+select,
+button,
+.button {
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid #c7ccd1;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #202124;
+  font: inherit;
+}
+
+input[name="titulo"],
+input[name="localidade"] {
+  min-width: 320px;
+}
+
+button,
+.button {
+  border-color: #0b57d0;
+  background: #0b57d0;
+  color: #ffffff;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.button.secondary {
+  border-color: #c7ccd1;
+  background: #ffffff;
+  color: #202124;
+}
+
+.link-button {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #0b57d0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 8px;
+  border-bottom: 1px solid #eceff3;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #f9fafb;
+  font-weight: 700;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.summary dt {
+  font-weight: 700;
+}
+
+.summary dd {
+  margin: 0;
+}
+
+.muted {
+  color: #5f6368;
+}
+
+.error {
+  color: #b3261e;
+}
+
+.status-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.status-strip a {
+  padding: 6px 10px;
+  border: 1px solid #dfe3e8;
+  border-radius: 4px;
+  background: #ffffff;
+  text-decoration: none;
+}
+
+.note-form {
+  flex-wrap: nowrap;
+}
+
+.note-form input {
+  width: 64px;
+}
+
+@media (max-width: 900px) {
+  .grid.two {
+    grid-template-columns: 1fr;
+  }
+}

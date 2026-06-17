@@ -1,0 +1,48 @@
+INSTRUCOES PARA INICIAR O PROJETO MEU ROBO
+
+1. Abra o terminal.
+
+2. Entre na pasta do projeto:
+
+cd /mnt/arquivos/projetoMeuRobo
+
+3. Ative o ambiente virtual:
+
+source .venv/bin/activate
+
+4. Inicie o sistema:
+
+meu-robo-web
+
+5. O sistema vai abrir automaticamente no Google Chrome.
+
+Endereco local da interface:
+
+http://127.0.0.1:8000
+
+6. Para usar o robo do LinkedIn:
+
+- Cadastre pelo menos um titulo de busca.
+- Cadastre pelo menos uma localidade.
+- Clique no botao "Iniciar coleta LinkedIn".
+
+7. O robo vai abrir um Chromium separado e navegar para o LinkedIn.
+
+8. Se o LinkedIn pedir login, 2FA, captcha ou verificacao manual, resolva no Chromium aberto.
+O robo aguardara ate 10 minutos.
+
+9. Para configurar usuario e senha do LinkedIn, edite o arquivo:
+
+/mnt/arquivos/projetoMeuRobo/.env
+
+E preencha:
+
+LINKEDIN_EMAIL=seu_email_linkedin
+LINKEDIN_PASSWORD=sua_senha_linkedin
+
+10. Para parar o sistema:
+
+No terminal onde o sistema esta rodando, pressione:
+
+CTRL + C
+
