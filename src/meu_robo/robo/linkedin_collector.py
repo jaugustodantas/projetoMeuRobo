@@ -208,6 +208,7 @@ async def _extract_job_details(page: Page, url: str) -> dict:
     descricao = await _first_text(
         page,
         [
+            "[data-testid='expandable-text-box']",
             ".jobs-description__content",
             ".jobs-box__html-content",
             "#job-details",
