@@ -34,6 +34,14 @@ meu-robo-linkedin
 meu-robo-indeed
 ```
 
+Observação: a coleta do Indeed é experimental. Ela usa `patchright` quando disponível e
+faz fallback para Playwright, porque o Indeed pode bloquear navegadores automatizados.
+O checkpoint anterior a essa tentativa está marcado na tag Git:
+
+```bash
+checkpoint-before-patchright-indeed
+```
+
 ## Banco
 
 Configure a conexão no arquivo `.env`:

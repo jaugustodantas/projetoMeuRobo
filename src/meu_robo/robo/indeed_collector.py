@@ -1,7 +1,10 @@
 import asyncio
 from urllib.parse import quote_plus
 
-from playwright.async_api import Page, async_playwright
+try:
+    from patchright.async_api import Page, async_playwright
+except ImportError:
+    from playwright.async_api import Page, async_playwright
 
 from meu_robo.repositories import execucoes_repository, localidades_repository, titulos_repository
 from meu_robo.repositories.vagas_repository import (
@@ -82,7 +85,24 @@ async def _collect_urls_from_current_page(page: Page) -> list[str]:
     except Exception:
         pass
 
-    urls = await page.locator(
+    card_urls = await page.locator(
+        "div.job_seen_beacon, div[data-testid='jobcard-wrapper']"
+    ).evaluate_all(
+        """
+        elements => elements
+            .flatMap(element => {
+                const title = element.querySelector("h2.jobTitle a, [data-testid='jobTitle'] a");
+                const jobKey = title?.getAttribute('data-jk') || element.getAttribute('data-jk');
+                const href = title?.href || title?.getAttribute('href');
+                if (jobKey) return [`https://br.indeed.com/viewjob?jk=${jobKey}`];
+                if (href) return [href.startsWith('http') ? href : `https://br.indeed.com${href}`];
+                return [];
+            })
+            .filter(Boolean)
+        """
+    )
+
+    fallback_urls = await page.locator(
         "a[href*='/viewjob?jk='], a[href*='jk='], a[data-jk]"
     ).evaluate_all(
         """
@@ -90,7 +110,9 @@ async def _collect_urls_from_current_page(page: Page) -> list[str]:
             .map(element => {
                 const href = element.href || element.getAttribute('href');
                 const jobKey = element.getAttribute('data-jk');
-                return href || (jobKey ? `/viewjob?jk=${jobKey}` : null);
+                if (jobKey) return `https://br.indeed.com/viewjob?jk=${jobKey}`;
+                if (!href) return null;
+                return href.startsWith('http') ? href : `https://br.indeed.com${href}`;
             })
             .filter(Boolean)
         """
@@ -98,7 +120,7 @@ async def _collect_urls_from_current_page(page: Page) -> list[str]:
 
     normalized = []
     seen = set()
-    for url in urls:
+    for url in [*card_urls, *fallback_urls]:
         normalized_url = normalizar_url(url)
         if "indeed.com/viewjob?jk=" not in normalized_url:
             continue

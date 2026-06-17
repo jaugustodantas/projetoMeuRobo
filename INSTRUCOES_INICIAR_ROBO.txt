@@ -31,6 +31,7 @@ http://127.0.0.1:8000
 - Cadastre pelo menos um titulo de busca.
 - Cadastre pelo menos uma localidade.
 - Clique no botao "Iniciar coleta Indeed".
+- Considere essa coleta experimental, pois o Indeed pode bloquear navegadores automatizados.
 
 8. O robo vai abrir um Chromium separado e navegar para a plataforma escolhida.
 

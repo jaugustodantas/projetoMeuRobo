@@ -112,7 +112,38 @@ async def _collect_urls_from_current_page(page: Page) -> list[str]:
     except Exception:
         pass
 
-    urls = await page.locator(
+    card_urls = await page.locator(
+        """
+        .scaffold-layout__list [data-view-name='job-card'][data-job-id],
+        .scaffold-layout__list .job-card-job-posting-card-wrapper[data-job-id],
+        .scaffold-layout__list div[data-job-id],
+        .jobs-search-results__list-item,
+        .job-card-container,
+        .base-card,
+        .job-card-list__entity-lockup,
+        .scaffold-layout__list-item,
+        div[data-job-id]
+        """
+    ).evaluate_all(
+        """
+        elements => elements
+            .flatMap(element => {
+                const ids = [
+                    element.getAttribute('data-occludable-job-id'),
+                    element.getAttribute('data-job-id')
+                ].filter(Boolean);
+                const links = Array.from(
+                    element.querySelectorAll(
+                        "a[href*='currentJobId='], a[href*='/jobs/collections/recommended'], a[href*='/jobs/collections/top-applicant'], a[href*='/jobs/view/'], a[data-control-name='job_card_title'], .job-card-job-posting-card-wrapper__card-link, .base-card__full-link, .job-card-container__link, .jobs-search-results__list-item-action"
+                    )
+                ).map(link => link.href || link.getAttribute('href')).filter(Boolean);
+                return [...ids.map(id => `https://www.linkedin.com/jobs/view/${id}`), ...links];
+            })
+            .filter(Boolean)
+        """
+    )
+
+    fallback_urls = await page.locator(
         "a[href*='/jobs/view/'], a[href*='currentJobId='], a[href*='/jobs-guest/jobs/api/jobPosting/']"
     ).evaluate_all(
         """
@@ -124,7 +155,7 @@ async def _collect_urls_from_current_page(page: Page) -> list[str]:
 
     normalized = []
     seen = set()
-    for url in urls:
+    for url in [*card_urls, *fallback_urls]:
         normalized_url = normalizar_url(url)
         if "/jobs/view/" not in normalized_url:
             continue
