@@ -69,10 +69,15 @@
 
 <section class="panel">
   <h2>Coleta</h2>
-  <p class="muted">A coleta inicial usa LinkedIn, Playwright e Chromium visível. O robô pesquisa as 3 primeiras páginas para cada combinação ativa.</p>
-  <form method="post" action="/coletas/linkedin">
-    <button type="submit">Iniciar coleta LinkedIn</button>
-  </form>
+  <p class="muted">As coletas usam Playwright e Chromium visível. O robô pesquisa as 3 primeiras páginas para cada combinação ativa.</p>
+  <div class="actions">
+    <form method="post" action="/coletas/linkedin">
+      <button type="submit">Iniciar coleta LinkedIn</button>
+    </form>
+    <form method="post" action="/coletas/indeed">
+      <button type="submit">Iniciar coleta Indeed</button>
+    </form>
+  </div>
 </section>
 
 <section class="grid two">

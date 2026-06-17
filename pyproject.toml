@@ -17,3 +17,4 @@ dependencies = [
 [project.scripts]
 meu-robo-web = "meu_robo.web.app:main"
 meu-robo-linkedin = "meu_robo.robo.linkedin_collector:main"
+meu-robo-indeed = "meu_robo.robo.indeed_collector:main"

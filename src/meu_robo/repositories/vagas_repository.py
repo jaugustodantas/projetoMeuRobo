@@ -37,6 +37,11 @@ def normalizar_url(url: str) -> str:
         if job_id.isdigit():
             return f"https://www.linkedin.com/jobs/view/{job_id}"
 
+    if "indeed." in parsed.netloc:
+        job_key = parse_qs(parsed.query).get("jk", [""])[0].strip()
+        if job_key:
+            return f"https://br.indeed.com/viewjob?jk={job_key}"
+
     return url.split("?", 1)[0].rstrip("/")
 
 

@@ -17,15 +17,22 @@ Ao iniciar, o sistema tenta abrir automaticamente no Google Chrome:
 http://127.0.0.1:8000
 ```
 
-## Coleta LinkedIn
+## Coletas
 
 1. Cadastre títulos e localidades na tela inicial.
-2. Clique em `Iniciar coleta LinkedIn`.
-3. O robô abre um Chromium separado e navega para o LinkedIn.
+2. Clique em `Iniciar coleta LinkedIn` ou `Iniciar coleta Indeed`.
+3. O robô abre um Chromium separado e navega para a plataforma escolhida.
 4. Se `LINKEDIN_EMAIL` e `LINKEDIN_PASSWORD` estiverem configurados no `.env`, o robô tenta fazer o login.
 5. Se o Chromium abrir pedindo login, 2FA ou verificação, resolva manualmente.
 6. O robô aguarda até 10 minutos e salva a sessão em `browser_session/`.
 7. Para cada vaga encontrada, o robô tenta salvar título, empresa, localidade e descrição no banco.
+
+Também é possível rodar uma coleta diretamente pelo terminal:
+
+```bash
+meu-robo-linkedin
+meu-robo-indeed
+```
 
 ## Banco
 

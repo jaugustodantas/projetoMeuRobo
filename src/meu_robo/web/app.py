@@ -19,6 +19,7 @@ from meu_robo.repositories.vagas_repository import (
     contar_vagas_por_status,
     listar_vagas,
 )
+from meu_robo.robo.indeed_collector import executar_coleta_indeed
 from meu_robo.robo.linkedin_collector import executar_coleta_linkedin
 from meu_robo.services.export_service import exportar_vagas_excel
 
@@ -34,6 +35,10 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 
 def _run_linkedin_collection_background() -> None:
     asyncio.run(executar_coleta_linkedin())
+
+
+def _run_indeed_collection_background() -> None:
+    asyncio.run(executar_coleta_indeed())
 
 
 def _open_app_in_browser() -> None:
@@ -127,6 +132,12 @@ async def alterar_localidade_ativo(localidade_id: int, request: Request):
 @app.post("/coletas/linkedin")
 async def iniciar_coleta_linkedin(background_tasks: BackgroundTasks):
     background_tasks.add_task(_run_linkedin_collection_background)
+    return RedirectResponse("/", status_code=303)
+
+
+@app.post("/coletas/indeed")
+async def iniciar_coleta_indeed(background_tasks: BackgroundTasks):
+    background_tasks.add_task(_run_indeed_collection_background)
     return RedirectResponse("/", status_code=303)
 
 
