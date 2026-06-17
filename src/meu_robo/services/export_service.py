@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from openpyxl import Workbook
+from openpyxl.styles import Font
 
 from meu_robo.config import get_exports_dir
 from meu_robo.repositories.vagas_repository import listar_vagas
@@ -30,6 +31,7 @@ def exportar_vagas_excel(filtros: dict | None = None) -> str:
         "Encontrada em",
     ]
     sheet.append(headers)
+    sheet.freeze_panes = "A2"
 
     for vaga in vagas:
         sheet.append(
@@ -55,6 +57,11 @@ def exportar_vagas_excel(filtros: dict | None = None) -> str:
                 else "",
             ]
         )
+        url_cell = sheet.cell(row=sheet.max_row, column=2)
+        if vaga["url"]:
+            url_cell.hyperlink = vaga["url"]
+            url_cell.style = "Hyperlink"
+            url_cell.font = Font(color="0563C1", underline="single")
 
     for column in sheet.columns:
         max_length = max(len(str(cell.value or "")) for cell in column)
