@@ -118,6 +118,12 @@ button,
   color: #0b57d0;
 }
 
+.danger-button {
+  border-color: #b3261e;
+  background: #b3261e;
+  color: #ffffff;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

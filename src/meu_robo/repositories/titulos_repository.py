@@ -47,6 +47,12 @@ def alterar_ativo(titulo_id: int, ativo: bool) -> None:
             )
 
 
+def excluir_titulo(titulo_id: int) -> None:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM titulos_busca WHERE id = %s", (titulo_id,))
+
+
 def listar_titulos_ativos() -> list[dict]:
     with get_connection() as conn:
         with conn.cursor() as cur:

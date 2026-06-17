@@ -14,6 +14,7 @@
         <tr>
           <th>Título</th>
           <th>Ativo</th>
+          <th>Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -26,6 +27,11 @@
               <button class="link-button" type="submit">
                 {{ "Sim" if titulo.ativo else "Não" }}
               </button>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="/titulos/{{ titulo.id }}/excluir" onsubmit="return confirm('Excluir este título?')">
+              <button class="danger-button" type="submit">Excluir</button>
             </form>
           </td>
         </tr>
@@ -46,6 +52,7 @@
         <tr>
           <th>Localidade</th>
           <th>Ativa</th>
+          <th>Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -58,6 +65,11 @@
               <button class="link-button" type="submit">
                 {{ "Sim" if localidade.ativo else "Não" }}
               </button>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="/localidades/{{ localidade.id }}/excluir" onsubmit="return confirm('Excluir esta localidade?')">
+              <button class="danger-button" type="submit">Excluir</button>
             </form>
           </td>
         </tr>

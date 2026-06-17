@@ -17,6 +17,7 @@ from meu_robo.repositories.vagas_repository import (
     atualizar_nota,
     atualizar_status,
     contar_vagas_por_status,
+    excluir_vaga,
     listar_vagas,
 )
 from meu_robo.robo.indeed_collector import executar_coleta_indeed
@@ -113,6 +114,12 @@ async def alterar_titulo_ativo(titulo_id: int, request: Request):
     return RedirectResponse("/", status_code=303)
 
 
+@app.post("/titulos/{titulo_id}/excluir")
+async def excluir_titulo(titulo_id: int):
+    titulos_repository.excluir_titulo(titulo_id)
+    return RedirectResponse("/", status_code=303)
+
+
 @app.post("/localidades")
 async def criar_localidade(request: Request):
     form = await request.form()
@@ -126,6 +133,12 @@ async def criar_localidade(request: Request):
 async def alterar_localidade_ativo(localidade_id: int, request: Request):
     form = await request.form()
     localidades_repository.alterar_ativo(localidade_id, _bool_form_value(str(form.get("ativo"))))
+    return RedirectResponse("/", status_code=303)
+
+
+@app.post("/localidades/{localidade_id}/excluir")
+async def excluir_localidade(localidade_id: int):
+    localidades_repository.excluir_localidade(localidade_id)
     return RedirectResponse("/", status_code=303)
 
 
@@ -188,6 +201,12 @@ async def alterar_nota_vaga(vaga_id: int, request: Request):
     nota_raw = str(form.get("nota_aderencia", "")).strip()
     nota = int(nota_raw) if nota_raw else None
     atualizar_nota(vaga_id, nota)
+    return RedirectResponse("/vagas", status_code=303)
+
+
+@app.post("/vagas/{vaga_id}/excluir")
+async def excluir_registro_vaga(vaga_id: int):
+    excluir_vaga(vaga_id)
     return RedirectResponse("/vagas", status_code=303)
 
 

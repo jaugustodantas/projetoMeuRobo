@@ -75,6 +75,7 @@
         <th>Título pesquisado</th>
         <th>Localidade</th>
         <th>Encontrada em</th>
+        <th>Ações</th>
       </tr>
     </thead>
     <tbody>
@@ -126,6 +127,11 @@
         <td>{{ vaga.titulo_busca or "-" }}</td>
         <td>{{ vaga.localidade_busca or "-" }}</td>
         <td>{{ vaga.encontrada_em }}</td>
+        <td>
+          <form method="post" action="/vagas/{{ vaga.id }}/excluir" onsubmit="return confirm('Excluir esta vaga?')">
+            <button class="danger-button" type="submit">Excluir</button>
+          </form>
+        </td>
       </tr>
       {% endfor %}
     </tbody>

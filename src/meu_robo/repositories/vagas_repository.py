@@ -120,6 +120,12 @@ def atualizar_nota(vaga_id: int, nota_aderencia: int | None) -> None:
             )
 
 
+def excluir_vaga(vaga_id: int) -> None:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM vagas WHERE id = %s", (vaga_id,))
+
+
 def atualizar_dados_extraidos(
     vaga_id: int,
     titulo_vaga: str | None = None,

@@ -47,6 +47,12 @@ def alterar_ativo(localidade_id: int, ativo: bool) -> None:
             )
 
 
+def excluir_localidade(localidade_id: int) -> None:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM localidades_busca WHERE id = %s", (localidade_id,))
+
+
 def listar_localidades_ativas() -> list[dict]:
     with get_connection() as conn:
         with conn.cursor() as cur:
