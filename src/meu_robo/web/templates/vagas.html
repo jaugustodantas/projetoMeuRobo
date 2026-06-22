@@ -62,16 +62,32 @@
 </section>
 
 <section class="panel">
-  <h2>Vagas</h2>
+  <div class="panel-header">
+    <h2>Vagas</h2>
+    <div class="panel-header-actions">
+      <form method="post" action="/vagas/avaliar" onsubmit="return confirm('Avaliar vagas pendentes com IA?')">
+        <input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+        <button type="submit">Avaliar vagas pendentes</button>
+      </form>
+      <form id="bulk-delete-form" method="post" action="/vagas/excluir" onsubmit="return confirm('Excluir as vagas selecionadas?')">
+        <input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+        <button id="bulk-delete-button" class="danger-button" type="submit" disabled>Excluir selecionadas</button>
+      </form>
+    </div>
+  </div>
   <table>
     <thead>
       <tr>
+        <th class="selection-cell">
+          <input id="select-all-vagas" type="checkbox" aria-label="Selecionar todas as vagas">
+        </th>
         <th>ID</th>
         <th>Vaga</th>
         <th>Extração</th>
         <th>Plataforma</th>
         <th>Status</th>
         <th>Nota</th>
+        <th>Análise IA</th>
         <th>Título pesquisado</th>
         <th>Localidade</th>
         <th>Encontrada em</th>
@@ -81,6 +97,9 @@
     <tbody>
       {% for vaga in vagas %}
       <tr>
+        <td class="selection-cell">
+          <input class="vaga-checkbox" form="bulk-delete-form" type="checkbox" name="vaga_ids" value="{{ vaga.id }}" aria-label="Selecionar vaga {{ vaga.id }}">
+        </td>
         <td>{{ vaga.id }}</td>
         <td class="job-cell">
           <a href="{{ vaga.url }}" target="_blank" rel="noreferrer">{{ vaga.titulo_vaga or vaga.url }}</a>
@@ -124,6 +143,40 @@
             <button type="submit">OK</button>
           </form>
         </td>
+        <td class="ai-cell">
+          {% if vaga.analisada_em %}
+            {% if vaga.recomendacao_ia %}
+              <strong>{{ vaga.recomendacao_ia }}</strong>
+            {% endif %}
+            {% if vaga.senioridade_ia %}
+              <div class="muted">{{ vaga.senioridade_ia }}</div>
+            {% endif %}
+            {% if vaga.justificativa_ia %}
+              <p>{{ vaga.justificativa_ia }}</p>
+            {% endif %}
+            <details>
+              <summary>Ver detalhes da avaliação</summary>
+              {% if vaga.pontos_positivos_ia %}
+                <h3>Pontos positivos</h3>
+                <pre>{{ vaga.pontos_positivos_ia }}</pre>
+              {% endif %}
+              {% if vaga.pontos_alerta_ia %}
+                <h3>Pontos de alerta</h3>
+                <pre>{{ vaga.pontos_alerta_ia }}</pre>
+              {% endif %}
+              {% if vaga.tecnologias_ia %}
+                <h3>Tecnologias</h3>
+                <pre>{{ vaga.tecnologias_ia }}</pre>
+              {% endif %}
+              <div class="muted">Avaliada em {{ vaga.analisada_em }}</div>
+            </details>
+          {% elif vaga.erro_analise_ia %}
+            <span class="error">Erro na avaliação</span>
+            <div class="error">{{ vaga.erro_analise_ia }}</div>
+          {% else %}
+            <span class="muted">Pendente</span>
+          {% endif %}
+        </td>
         <td>{{ vaga.titulo_busca or "-" }}</td>
         <td>{{ vaga.localidade_busca or "-" }}</td>
         <td>{{ vaga.encontrada_em }}</td>
@@ -137,4 +190,37 @@
     </tbody>
   </table>
 </section>
+
+<script>
+  const selectAllVagas = document.getElementById("select-all-vagas");
+  const bulkDeleteButton = document.getElementById("bulk-delete-button");
+  const vagaCheckboxes = Array.from(document.querySelectorAll(".vaga-checkbox"));
+
+  function updateBulkDeleteState() {
+    const selectedCount = vagaCheckboxes.filter((checkbox) => checkbox.checked).length;
+    bulkDeleteButton.disabled = selectedCount === 0;
+
+    if (!selectAllVagas) {
+      return;
+    }
+
+    selectAllVagas.checked = selectedCount > 0 && selectedCount === vagaCheckboxes.length;
+    selectAllVagas.indeterminate = selectedCount > 0 && selectedCount < vagaCheckboxes.length;
+  }
+
+  if (selectAllVagas) {
+    selectAllVagas.addEventListener("change", () => {
+      vagaCheckboxes.forEach((checkbox) => {
+        checkbox.checked = selectAllVagas.checked;
+      });
+      updateBulkDeleteState();
+    });
+  }
+
+  vagaCheckboxes.forEach((checkbox) => {
+    checkbox.addEventListener("change", updateBulkDeleteState);
+  });
+
+  updateBulkDeleteState();
+</script>
 {% endblock %}

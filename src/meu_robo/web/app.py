@@ -18,10 +18,12 @@ from meu_robo.repositories.vagas_repository import (
     atualizar_status,
     contar_vagas_por_status,
     excluir_vaga,
+    excluir_vagas,
     listar_vagas,
 )
 from meu_robo.robo.indeed_collector import executar_coleta_indeed
 from meu_robo.robo.linkedin_collector import executar_coleta_linkedin
+from meu_robo.services.classificador_vagas_service import avaliar_vagas_pendentes
 from meu_robo.services.export_service import exportar_vagas_excel
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -40,6 +42,10 @@ def _run_linkedin_collection_background() -> None:
 
 def _run_indeed_collection_background() -> None:
     asyncio.run(executar_coleta_indeed())
+
+
+def _run_job_evaluation_background() -> None:
+    avaliar_vagas_pendentes()
 
 
 def _open_app_in_browser() -> None:
@@ -78,6 +84,13 @@ def _vagas_filtros(
         "nota_minima": nota_minima or "",
         "texto": texto or "",
     }
+
+
+def _redirect_vagas_url(next_url: str) -> str:
+    if next_url == "/vagas" or next_url.startswith("/vagas?"):
+        return next_url
+
+    return "/vagas"
 
 
 @app.get("/")
@@ -202,6 +215,33 @@ async def alterar_nota_vaga(vaga_id: int, request: Request):
     nota = int(nota_raw) if nota_raw else None
     atualizar_nota(vaga_id, nota)
     return RedirectResponse("/vagas", status_code=303)
+
+
+@app.get("/vagas/excluir")
+async def redirecionar_exclusao_vagas():
+    return RedirectResponse("/vagas", status_code=303)
+
+
+@app.post("/vagas/excluir")
+async def excluir_registros_vagas(request: Request):
+    form = await request.form()
+    vaga_ids = []
+    for raw_id in form.getlist("vaga_ids"):
+        value = str(raw_id).strip()
+        if value.isdigit():
+            vaga_ids.append(int(value))
+
+    excluir_vagas(vaga_ids)
+    next_url = str(form.get("next", "")).strip()
+    return RedirectResponse(_redirect_vagas_url(next_url), status_code=303)
+
+
+@app.post("/vagas/avaliar")
+async def avaliar_registros_vagas(request: Request, background_tasks: BackgroundTasks):
+    form = await request.form()
+    background_tasks.add_task(_run_job_evaluation_background)
+    next_url = str(form.get("next", "")).strip()
+    return RedirectResponse(_redirect_vagas_url(next_url), status_code=303)
 
 
 @app.post("/vagas/{vaga_id}/excluir")

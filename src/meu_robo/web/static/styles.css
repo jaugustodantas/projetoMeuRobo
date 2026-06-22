@@ -62,6 +62,25 @@ a {
   font-size: 16px;
 }
 
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.panel-header h2 {
+  margin: 0;
+}
+
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .inline-form,
 .filters,
 .note-form,
@@ -104,6 +123,11 @@ button,
   text-decoration: none;
 }
 
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .button.secondary {
   border-color: #c7ccd1;
   background: #ffffff;
@@ -140,6 +164,18 @@ td {
 th {
   background: #f9fafb;
   font-weight: 700;
+}
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-height: auto;
+  padding: 0;
+}
+
+.selection-cell {
+  width: 40px;
+  text-align: center;
 }
 
 .summary {
@@ -190,6 +226,30 @@ th {
 
 .job-cell {
   min-width: 340px;
+}
+
+.ai-cell {
+  min-width: 280px;
+}
+
+.ai-cell p {
+  max-width: 420px;
+  margin: 6px 0;
+  line-height: 1.4;
+}
+
+.ai-cell h3 {
+  margin: 10px 0 4px;
+  font-size: 13px;
+}
+
+.ai-cell pre {
+  max-width: 520px;
+  margin: 4px 0;
+  color: #3c4043;
+  font: inherit;
+  line-height: 1.4;
+  white-space: pre-wrap;
 }
 
 details {

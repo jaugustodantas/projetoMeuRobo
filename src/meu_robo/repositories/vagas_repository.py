@@ -120,10 +120,74 @@ def atualizar_nota(vaga_id: int, nota_aderencia: int | None) -> None:
             )
 
 
+def atualizar_avaliacao_ia(
+    vaga_id: int,
+    nota_aderencia: int,
+    recomendacao_ia: str | None,
+    justificativa_ia: str | None,
+    pontos_positivos_ia: str | None,
+    pontos_alerta_ia: str | None,
+    tecnologias_ia: str | None,
+    senioridade_ia: str | None,
+) -> None:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE vagas
+                SET nota_aderencia = %s,
+                    recomendacao_ia = %s,
+                    justificativa_ia = %s,
+                    pontos_positivos_ia = %s,
+                    pontos_alerta_ia = %s,
+                    tecnologias_ia = %s,
+                    senioridade_ia = %s,
+                    analisada_em = NOW(),
+                    erro_analise_ia = NULL,
+                    atualizada_em = NOW()
+                WHERE id = %s
+                """,
+                (
+                    nota_aderencia,
+                    recomendacao_ia,
+                    justificativa_ia,
+                    pontos_positivos_ia,
+                    pontos_alerta_ia,
+                    tecnologias_ia,
+                    senioridade_ia,
+                    vaga_id,
+                ),
+            )
+
+
+def registrar_erro_avaliacao_ia(vaga_id: int, erro: str) -> None:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE vagas
+                SET erro_analise_ia = %s,
+                    atualizada_em = NOW()
+                WHERE id = %s
+                """,
+                (erro, vaga_id),
+            )
+
+
 def excluir_vaga(vaga_id: int) -> None:
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM vagas WHERE id = %s", (vaga_id,))
+
+
+def excluir_vagas(vaga_ids: list[int]) -> None:
+    ids = sorted(set(vaga_ids))
+    if not ids:
+        return
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM vagas WHERE id = ANY(%s)", (ids,))
 
 
 def atualizar_dados_extraidos(
@@ -211,6 +275,9 @@ def listar_vagas(filtros: dict | None = None) -> list[dict]:
                v.descricao_vaga, v.conteudo_extraido_em, v.url_acessivel,
                v.erro_extracao, v.plataforma, v.status,
                v.nota_aderencia, v.encontrada_em, v.atualizada_em,
+               v.recomendacao_ia, v.justificativa_ia, v.pontos_positivos_ia,
+               v.pontos_alerta_ia, v.tecnologias_ia, v.senioridade_ia,
+               v.analisada_em, v.erro_analise_ia,
                t.titulo AS titulo_busca,
                l.localidade AS localidade_busca
         FROM vagas v
@@ -224,6 +291,36 @@ def listar_vagas(filtros: dict | None = None) -> list[dict]:
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(query, values)
+            return cur.fetchall()
+
+
+def listar_vagas_para_avaliacao(limit: int = 20, reavaliar: bool = False) -> list[dict]:
+    clauses = [
+        "v.descricao_vaga IS NOT NULL",
+        "TRIM(v.descricao_vaga) <> ''",
+    ]
+
+    if not reavaliar:
+        clauses.append("v.analisada_em IS NULL")
+
+    query = sql.SQL(
+        """
+        SELECT v.id, v.url, v.titulo_vaga, v.empresa, v.localidade_extraida,
+               v.descricao_vaga, v.plataforma, v.status,
+               t.titulo AS titulo_busca,
+               l.localidade AS localidade_busca
+        FROM vagas v
+        LEFT JOIN titulos_busca t ON t.id = v.titulo_busca_id
+        LEFT JOIN localidades_busca l ON l.id = v.localidade_busca_id
+        WHERE {where}
+        ORDER BY v.encontrada_em DESC, v.id DESC
+        LIMIT %s
+        """
+    ).format(where=sql.SQL(" AND ").join(sql.SQL(c) for c in clauses))
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (limit,))
             return cur.fetchall()
 
 

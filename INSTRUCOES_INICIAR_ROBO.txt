@@ -55,7 +55,25 @@ E preencha:
 LINKEDIN_EMAIL=seu_email_linkedin
 LINKEDIN_PASSWORD=sua_senha_linkedin
 
-12. Para parar o sistema:
+12. Para usar a avaliacao de vagas com IA:
+
+- Guarde os arquivos privados em:
+
+/mnt/arquivos/projetoMeuRobo/private/agent_context/agenteRh.md
+/mnt/arquivos/projetoMeuRobo/private/agent_context/cv.md
+
+- Configure no arquivo .env:
+
+OPENAI_API_KEY=sua_chave_openai
+OPENAI_MODEL=gpt-5.5
+
+- Na tela "Vagas", clique em "Avaliar vagas pendentes".
+
+Tambem e possivel rodar pelo terminal:
+
+meu-robo-avaliar-vagas --limit 20
+
+13. Para parar o sistema:
 
 No terminal onde o sistema esta rodando, pressione:
 

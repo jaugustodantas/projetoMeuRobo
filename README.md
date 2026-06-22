@@ -50,6 +50,8 @@ Configure a conexão no arquivo `.env`:
 DATABASE_URL=postgresql://usuario:senha@localhost:5432/projeto_meu_robo
 LINKEDIN_EMAIL=seu_email_linkedin
 LINKEDIN_PASSWORD=sua_senha_linkedin
+OPENAI_API_KEY=sua_chave_openai
+OPENAI_MODEL=gpt-5.5
 ```
 
 O schema inicial está em:
@@ -62,6 +64,25 @@ Migrations incrementais:
 
 ```text
 database/002_add_job_extracted_content.sql
+database/003_add_job_ai_evaluation.sql
+```
+
+## Avaliação de vagas com IA
+
+Os arquivos privados de orientação e currículo ficam em:
+
+```text
+private/agent_context/agenteRh.md
+private/agent_context/cv.md
+```
+
+Essa pasta é ignorada pelo Git. Na tela `Vagas`, clique em `Avaliar vagas pendentes`
+para classificar vagas que já tenham descrição coletada.
+
+Também é possível rodar pelo terminal:
+
+```bash
+meu-robo-avaliar-vagas --limit 20
 ```
 
 ## Exportação
