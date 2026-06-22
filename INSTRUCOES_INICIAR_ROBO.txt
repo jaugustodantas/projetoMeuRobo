@@ -62,8 +62,21 @@ LINKEDIN_PASSWORD=sua_senha_linkedin
 /mnt/arquivos/projetoMeuRobo/private/agent_context/agenteRh.md
 /mnt/arquivos/projetoMeuRobo/private/agent_context/cv.md
 
-- Configure no arquivo .env:
+- Por padrao, a avaliacao usa o Ollama local. Instale o modelo e mantenha o
+  servico do Ollama ativo:
 
+ollama pull gemma3:4b
+
+- A configuracao padrao equivale a:
+
+AI_PROVIDER=ollama
+OLLAMA_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=gemma3:4b
+OLLAMA_NUM_CTX=16384
+
+- Para usar a OpenAI no lugar do Ollama, configure no arquivo .env:
+
+AI_PROVIDER=openai
 OPENAI_API_KEY=sua_chave_openai
 OPENAI_MODEL=gpt-5.5
 

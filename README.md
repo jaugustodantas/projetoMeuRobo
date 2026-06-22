@@ -52,6 +52,10 @@ LINKEDIN_EMAIL=seu_email_linkedin
 LINKEDIN_PASSWORD=sua_senha_linkedin
 OPENAI_API_KEY=sua_chave_openai
 OPENAI_MODEL=gpt-5.5
+AI_PROVIDER=ollama
+OLLAMA_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=gemma3:4b
+OLLAMA_NUM_CTX=16384
 ```
 
 O schema inicial está em:
@@ -68,6 +72,10 @@ database/003_add_job_ai_evaluation.sql
 ```
 
 ## Avaliação de vagas com IA
+
+Por padrão, a avaliação usa o Ollama local com o modelo `gemma3:4b`. O Ollama deve
+estar ativo em `http://127.0.0.1:11434`. Para usar a API da OpenAI, configure
+`AI_PROVIDER=openai` e informe `OPENAI_API_KEY`.
 
 Os arquivos privados de orientação e currículo ficam em:
 

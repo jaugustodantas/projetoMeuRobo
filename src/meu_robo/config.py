@@ -70,3 +70,29 @@ def get_openai_api_key() -> str:
 
 def get_openai_model() -> str:
     return os.getenv("OPENAI_MODEL", "gpt-5.5").strip() or "gpt-5.5"
+
+
+def get_ai_provider() -> str:
+    provider = os.getenv("AI_PROVIDER", "ollama").strip().lower() or "ollama"
+    if provider not in {"ollama", "openai"}:
+        raise RuntimeError("AI_PROVIDER deve ser 'ollama' ou 'openai'")
+    return provider
+
+
+def get_ollama_url() -> str:
+    return os.getenv("OLLAMA_URL", "http://127.0.0.1:11434").strip().rstrip("/")
+
+
+def get_ollama_model() -> str:
+    return os.getenv("OLLAMA_MODEL", "gemma3:4b").strip() or "gemma3:4b"
+
+
+def get_ollama_num_ctx() -> int:
+    try:
+        num_ctx = int(os.getenv("OLLAMA_NUM_CTX", "16384"))
+    except ValueError as exc:
+        raise RuntimeError("OLLAMA_NUM_CTX deve ser um número inteiro") from exc
+
+    if num_ctx < 8192:
+        raise RuntimeError("OLLAMA_NUM_CTX deve ser pelo menos 8192")
+    return num_ctx

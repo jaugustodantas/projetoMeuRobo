@@ -1,4 +1,5 @@
 import argparse
+import ast
 import json
 from dataclasses import dataclass
 from urllib.error import HTTPError, URLError
@@ -6,7 +7,11 @@ from urllib.request import Request, urlopen
 
 from meu_robo.config import (
     get_agente_rh_path,
+    get_ai_provider,
     get_cv_path,
+    get_ollama_model,
+    get_ollama_num_ctx,
+    get_ollama_url,
     get_openai_api_key,
     get_openai_model,
 )
@@ -116,16 +121,31 @@ def _post_openai_response(payload: dict) -> dict:
         raise RuntimeError(f"Falha de conexão com a API OpenAI: {exc.reason}") from exc
 
 
-def _build_prompt(orientacao_agente: str, curriculo: str, vaga: dict) -> str:
+def _post_ollama_chat(payload: dict) -> dict:
+    url = f"{get_ollama_url()}/api/chat"
+    request = Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urlopen(request, timeout=600) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Erro do Ollama ({exc.code}): {body}") from exc
+    except URLError as exc:
+        raise RuntimeError(
+            f"Falha de conexão com o Ollama em {url}: {exc.reason}"
+        ) from exc
+
+
+def _build_prompt(curriculo: str, vaga: dict) -> str:
     descricao = str(vaga.get("descricao_vaga") or "")[:MAX_DESCRICAO_CHARS]
     return f"""
-Você vai avaliar a aderência de uma vaga ao perfil profissional do candidato.
-
-Use a orientação do agente como critério principal. Se a orientação pedir para retornar
-apenas um número, respeite a escala, mas retorne o JSON estruturado solicitado pela aplicação.
-
-ORIENTAÇÃO DO AGENTE:
-{orientacao_agente}
+Compare a vaga com o currículo abaixo.
 
 CURRÍCULO DO CANDIDATO:
 {curriculo}
@@ -142,7 +162,15 @@ Localidade extraída: {vaga.get("localidade_extraida") or ""}
 Descrição:
 {descricao}
 
-Retorne uma avaliação objetiva. A nota deve ser um inteiro de 1 a 10.
+Antes de definir a nota, verifique internamente:
+
+1. Quais são os requisitos obrigatórios?
+2. Quais deles estão comprovados no currículo?
+3. Quais requisitos importantes estão ausentes?
+4. As responsabilidades e a senioridade são compatíveis?
+5. A experiência do candidato é direta ou apenas transferível?
+
+Retorne somente o JSON solicitado.
 """.strip()
 
 
@@ -151,10 +179,14 @@ def _parse_avaliacao(response_data: dict) -> dict:
     if not text:
         raise ValueError("Resposta da IA veio vazia.")
 
+    cleaned = text.strip()
+    if cleaned.startswith("```") and cleaned.endswith("```"):
+        cleaned = cleaned.removeprefix("```json").removeprefix("```")
+        cleaned = cleaned.removesuffix("```").strip()
+
     try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
-        cleaned = text.strip()
+        data = json.loads(cleaned)
+    except json.JSONDecodeError as json_error:
         if cleaned.isdigit():
             data = {
                 "nota": int(cleaned),
@@ -166,7 +198,13 @@ def _parse_avaliacao(response_data: dict) -> dict:
                 "senioridade_estimada": "",
             }
         else:
-            raise
+            try:
+                data = ast.literal_eval(cleaned)
+            except (SyntaxError, ValueError) as exc:
+                raise ValueError(f"Resposta da IA não contém JSON válido: {text}") from json_error
+
+    if not isinstance(data, dict):
+        raise ValueError("Resposta da IA deve ser um objeto JSON.")
 
     nota = int(data["nota"])
     if nota < 1 or nota > 10:
@@ -176,32 +214,58 @@ def _parse_avaliacao(response_data: dict) -> dict:
 
 
 def avaliar_vaga(vaga: dict, orientacao_agente: str, curriculo: str) -> None:
-    payload = {
-        "model": get_openai_model(),
-        "input": [
-            {
-                "role": "developer",
-                "content": (
-                    "Retorne somente JSON válido no formato solicitado. "
-                    "A nota deve ser um inteiro de 1 a 10."
-                ),
+    prompt = _build_prompt(curriculo, vaga)
+    provider = get_ai_provider()
+
+    if provider == "ollama":
+        payload = {
+            "model": get_ollama_model(),
+            "messages": [
+                {"role": "system", "content": orientacao_agente},
+                {"role": "user", "content": prompt},
+            ],
+            "stream": False,
+            "format": AVALIACAO_SCHEMA,
+            "options": {
+                "temperature": 0,
+                "num_ctx": get_ollama_num_ctx(),
+                "num_predict": 800,
             },
-            {
-                "role": "user",
-                "content": _build_prompt(orientacao_agente, curriculo, vaga),
+            "keep_alive": "10m",
+        }
+        response_data = _post_ollama_chat(payload)
+        if response_data.get("done_reason") == "length":
+            raise RuntimeError(
+                "O Ollama interrompeu a resposta por limite de contexto. "
+                "Aumente OLLAMA_NUM_CTX."
+            )
+        content = response_data.get("message", {}).get("content", "")
+        data = _parse_avaliacao({"output_text": content})
+    else:
+        payload = {
+            "model": get_openai_model(),
+            "input": [
+                {
+                    "role": "developer",
+                    "content": orientacao_agente,
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            "max_output_tokens": 1200,
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "avaliacao_vaga",
+                    "schema": AVALIACAO_SCHEMA,
+                    "strict": True,
+                }
             },
-        ],
-        "max_output_tokens": 1200,
-        "text": {
-            "format": {
-                "type": "json_schema",
-                "name": "avaliacao_vaga",
-                "schema": AVALIACAO_SCHEMA,
-                "strict": True,
-            }
-        },
-    }
-    data = _parse_avaliacao(_post_openai_response(payload))
+        }
+        data = _parse_avaliacao(_post_openai_response(payload))
+
     atualizar_avaliacao_ia(
         vaga_id=int(vaga["id"]),
         nota_aderencia=int(data["nota"]),
