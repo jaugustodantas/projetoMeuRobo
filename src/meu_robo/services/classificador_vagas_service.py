@@ -278,7 +278,7 @@ def avaliar_vaga(vaga: dict, orientacao_agente: str, curriculo: str) -> None:
     )
 
 
-def avaliar_vagas_pendentes(limit: int = 20, reavaliar: bool = False) -> ResultadoAvaliacao:
+def avaliar_vagas_pendentes(limit: int | None = None, reavaliar: bool = False) -> ResultadoAvaliacao:
     orientacao_agente = _read_context_file(get_agente_rh_path())
     curriculo = _read_context_file(get_cv_path())
     vagas = listar_vagas_para_avaliacao(limit=limit, reavaliar=reavaliar)
@@ -297,7 +297,12 @@ def avaliar_vagas_pendentes(limit: int = 20, reavaliar: bool = False) -> Resulta
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Avalia vagas coletadas com IA.")
-    parser.add_argument("--limit", type=int, default=20, help="Quantidade máxima de vagas.")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Quantidade máxima de vagas. Por padrão, avalia todas as pendentes.",
+    )
     parser.add_argument("--reavaliar", action="store_true", help="Reavalia vagas já analisadas.")
     args = parser.parse_args()
 

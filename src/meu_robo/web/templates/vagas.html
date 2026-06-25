@@ -18,7 +18,6 @@
       <select name="plataforma">
         <option value="">Todas</option>
         <option value="linkedin" {{ "selected" if filtros.plataforma == "linkedin" else "" }}>LinkedIn</option>
-        <option value="indeed" {{ "selected" if filtros.plataforma == "indeed" else "" }}>Indeed</option>
       </select>
     </label>
     <label>
@@ -26,7 +25,9 @@
       <select name="titulo_busca_id">
         <option value="">Todos</option>
         {% for titulo in titulos %}
-          <option value="{{ titulo.id }}" {{ "selected" if filtros.titulo_busca_id|string == titulo.id|string else "" }}>{{ titulo.titulo }}</option>
+          <option value="{{ titulo.id }}" {{ "selected" if filtros.titulo_busca_id|string == titulo.id|string else "" }}>
+            {{ titulo.titulo }} ({{ "exata" if titulo.modo_correspondencia == "exata" else "genérica" }})
+          </option>
         {% endfor %}
       </select>
     </label>
@@ -65,9 +66,9 @@
   <div class="panel-header">
     <h2>Vagas</h2>
     <div class="panel-header-actions">
-      <form method="post" action="/vagas/avaliar" onsubmit="return confirm('Avaliar vagas pendentes com IA?')">
+      <form method="post" action="/vagas/avaliar" onsubmit="return confirm('Avaliar todas as vagas pendentes com IA?')">
         <input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
-        <button type="submit">Avaliar vagas pendentes</button>
+        <button type="submit" data-operation-button="avaliacao">Avaliar todas pendentes</button>
       </form>
       <form id="bulk-delete-form" method="post" action="/vagas/excluir" onsubmit="return confirm('Excluir as vagas selecionadas?')">
         <input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">

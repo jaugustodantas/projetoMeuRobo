@@ -294,14 +294,20 @@ def listar_vagas(filtros: dict | None = None) -> list[dict]:
             return cur.fetchall()
 
 
-def listar_vagas_para_avaliacao(limit: int = 20, reavaliar: bool = False) -> list[dict]:
+def listar_vagas_para_avaliacao(limit: int | None = None, reavaliar: bool = False) -> list[dict]:
     clauses = [
         "v.descricao_vaga IS NOT NULL",
         "TRIM(v.descricao_vaga) <> ''",
     ]
 
+    if limit is not None and limit <= 0:
+        raise ValueError("limit deve ser maior que zero.")
+
     if not reavaliar:
         clauses.append("v.analisada_em IS NULL")
+
+    limit_sql = sql.SQL("LIMIT %s") if limit is not None else sql.SQL("")
+    values = (limit,) if limit is not None else ()
 
     query = sql.SQL(
         """
@@ -314,13 +320,16 @@ def listar_vagas_para_avaliacao(limit: int = 20, reavaliar: bool = False) -> lis
         LEFT JOIN localidades_busca l ON l.id = v.localidade_busca_id
         WHERE {where}
         ORDER BY v.encontrada_em DESC, v.id DESC
-        LIMIT %s
+        {limit_sql}
         """
-    ).format(where=sql.SQL(" AND ").join(sql.SQL(c) for c in clauses))
+    ).format(
+        where=sql.SQL(" AND ").join(sql.SQL(c) for c in clauses),
+        limit_sql=limit_sql,
+    )
 
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute(query, (limit,))
+            cur.execute(query, values)
             return cur.fetchall()
 
 

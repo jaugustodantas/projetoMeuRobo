@@ -6,6 +6,10 @@
     <h2>Títulos de busca</h2>
     <form class="inline-form" method="post" action="/titulos">
       <input name="titulo" placeholder="Ex: Analista" required>
+      <select name="modo_correspondencia">
+        <option value="generica">Genérica</option>
+        <option value="exata">Exata</option>
+      </select>
       <button type="submit">Adicionar</button>
     </form>
 
@@ -13,6 +17,7 @@
       <thead>
         <tr>
           <th>Título</th>
+          <th>Modo</th>
           <th>Ativo</th>
           <th>Ações</th>
         </tr>
@@ -21,6 +26,7 @@
         {% for titulo in titulos %}
         <tr>
           <td>{{ titulo.titulo }}</td>
+          <td>{{ "Exata" if titulo.modo_correspondencia == "exata" else "Genérica" }}</td>
           <td>
             <form method="post" action="/titulos/{{ titulo.id }}/ativo">
               <input type="hidden" name="ativo" value="{{ 'false' if titulo.ativo else 'true' }}">
@@ -80,15 +86,60 @@
 </section>
 
 <section class="panel">
+  <h2>Busca LinkedIn</h2>
+  <p class="muted">Modelo inspirado no repositório de referência: modalidade permitida e listas de bloqueio aplicadas antes de salvar a vaga.</p>
+  <form class="filters" method="post" action="/linkedin/config">
+    <label class="checkbox-row">
+      <input type="checkbox" name="permitir_presencial" value="true" {{ "checked" if linkedin_config.permitir_presencial else "" }}>
+      Presencial
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" name="permitir_hibrido" value="true" {{ "checked" if linkedin_config.permitir_hibrido else "" }}>
+      Híbrido
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" name="permitir_remoto" value="true" {{ "checked" if linkedin_config.permitir_remoto else "" }}>
+      Remoto
+    </label>
+    <label class="stacked-field">
+      Títulos bloqueados
+      <textarea name="palavras_titulo_bloqueadas" rows="4" placeholder="Uma palavra ou frase por linha">{{ linkedin_config.palavras_titulo_bloqueadas }}</textarea>
+    </label>
+    <label class="stacked-field">
+      Empresas bloqueadas
+      <textarea name="empresas_bloqueadas" rows="4" placeholder="Uma empresa por linha">{{ linkedin_config.empresas_bloqueadas }}</textarea>
+    </label>
+    <label class="stacked-field">
+      Localidades bloqueadas
+      <textarea name="localidades_bloqueadas" rows="4" placeholder="Uma localidade por linha">{{ linkedin_config.localidades_bloqueadas }}</textarea>
+    </label>
+    <div class="actions">
+      <button type="submit">Salvar configuração do LinkedIn</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
   <h2>Coleta</h2>
-  <p class="muted">As coletas usam Playwright e Chromium visível. O robô pesquisa as 3 primeiras páginas para cada combinação ativa.</p>
+  <p class="muted">Use busca genérica para cargos amplos, como "Analista", e busca exata para frases específicas, como "Analista de PCP".</p>
   <div class="actions">
     <form method="post" action="/coletas/linkedin">
-      <button type="submit">Iniciar coleta LinkedIn</button>
+      <button type="submit" data-operation-button="linkedin">Iniciar coleta LinkedIn</button>
     </form>
-    <form method="post" action="/coletas/indeed">
-      <button type="submit">Iniciar coleta Indeed</button>
+    <form method="post" action="/coletas/linkedin/parar">
+      <button class="button secondary" type="submit" data-stop-operation="linkedin" disabled>Parar coleta LinkedIn</button>
     </form>
+  </div>
+  <div class="operation-grid">
+    <article class="operation-card" data-operation-card="linkedin">
+      <h3>LinkedIn</h3>
+      <dl class="summary compact">
+        <dt>Status</dt><dd data-operation-field="linkedin:status">Parada</dd>
+        <dt>Pesquisadas</dt><dd data-operation-field="linkedin:searched_count">0</dd>
+        <dt>Salvas</dt><dd data-operation-field="linkedin:saved_count">0</dd>
+      </dl>
+      <p class="muted" data-operation-field="linkedin:message">Nenhuma coleta em andamento.</p>
+    </article>
   </div>
 </section>
 

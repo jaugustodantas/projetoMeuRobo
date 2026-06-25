@@ -15,7 +15,93 @@
       </nav>
     </header>
     <main class="container">
+      <div id="operation-feedback" class="operation-feedback" role="status" hidden></div>
       {% block content %}{% endblock %}
     </main>
+    <script>
+      const operationFeedback = document.getElementById("operation-feedback");
+
+      function renderOperationState(operations) {
+        const entries = Object.entries(operations);
+        const running = entries.filter(([, operation]) => operation.status === "running");
+        const operationButtons = document.querySelectorAll("[data-operation-button]");
+        const stopButtons = document.querySelectorAll("[data-stop-operation]");
+
+        operationButtons.forEach((button) => {
+          const operation = operations[button.dataset.operationButton];
+          button.disabled = Boolean(operation && operation.status === "running");
+        });
+
+        stopButtons.forEach((button) => {
+          const operation = operations[button.dataset.stopOperation];
+          button.disabled = !operation || operation.status !== "running" || operation.stop_requested;
+        });
+
+        entries.forEach(([name, operation]) => {
+          const fields = {
+            status: operation.status === "running"
+              ? (operation.stop_requested ? "Parando..." : "Rodando")
+              : operation.status === "completed"
+                ? "Concluída"
+                : operation.status === "failed"
+                  ? "Falhou"
+                  : "Parada",
+            searched_count: operation.searched_count ?? 0,
+            saved_count: operation.saved_count ?? 0,
+            message: operation.message || "Nenhuma coleta em andamento.",
+          };
+
+          Object.entries(fields).forEach(([field, value]) => {
+            const target = document.querySelector(`[data-operation-field="${name}:${field}"]`);
+            if (target) {
+              target.textContent = String(value);
+            }
+          });
+
+          const card = document.querySelector(`[data-operation-card="${name}"]`);
+          if (card) {
+            card.dataset.operationStatus = operation.status;
+          }
+        });
+
+        if (running.length > 0) {
+          operationFeedback.hidden = false;
+          operationFeedback.className = "operation-feedback running";
+          operationFeedback.textContent = running
+            .map(([, operation]) => operation.message)
+            .join(" ");
+          return;
+        }
+
+        const finished = entries
+          .filter(([, operation]) => operation.status === "completed" || operation.status === "failed")
+          .sort((a, b) => String(b[1].updated_at).localeCompare(String(a[1].updated_at)));
+
+        if (finished.length === 0) {
+          operationFeedback.hidden = true;
+          return;
+        }
+
+        const operation = finished[0][1];
+        operationFeedback.hidden = false;
+        operationFeedback.className = `operation-feedback ${operation.status}`;
+        operationFeedback.textContent = operation.message;
+      }
+
+      async function updateOperationState() {
+        try {
+          const response = await fetch("/api/operacoes", { cache: "no-store" });
+          if (!response.ok) {
+            return;
+          }
+          renderOperationState(await response.json());
+        } catch (error) {
+          console.error("Não foi possível consultar o estado das operações.", error);
+        }
+      }
+
+      updateOperationState();
+      window.setInterval(updateOperationState, 2000);
+    </script>
   </body>
 </html>

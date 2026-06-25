@@ -7,6 +7,7 @@ except ImportError:
     from playwright.async_api import Page, async_playwright
 
 from meu_robo.repositories import execucoes_repository, localidades_repository, titulos_repository
+from meu_robo.robo.filtros_vagas import vaga_compativel_com_busca
 from meu_robo.repositories.vagas_repository import (
     atualizar_dados_extraidos,
     normalizar_url,
@@ -16,6 +17,7 @@ from meu_robo.repositories.vagas_repository import (
 INDEED_SEARCH_URL = "https://br.indeed.com/jobs"
 MAX_PAGES_PER_COMBINATION = 3
 RESULTS_PER_PAGE = 10
+GOOGLE_CHROME_EXECUTABLE_PATH = "/usr/bin/google-chrome-stable"
 
 
 def _build_search_url(titulo: str, localidade: str, page_index: int) -> str:
@@ -191,7 +193,7 @@ async def _extract_job_details(page: Page, url: str) -> dict:
     }
 
 
-async def executar_coleta_indeed() -> dict[str, int]:
+async def executar_coleta_indeed(progress_callback=None, should_stop=None) -> dict[str, int | bool]:
     titulos = titulos_repository.listar_titulos_ativos()
     localidades = localidades_repository.listar_localidades_ativas()
     execucao_id = execucoes_repository.iniciar_execucao("indeed")
@@ -200,6 +202,7 @@ async def executar_coleta_indeed() -> dict[str, int]:
     vagas_novas = 0
     vagas_duplicadas = 0
     houve_erro = False
+    interrompida = False
 
     if not titulos or not localidades:
         execucoes_repository.finalizar_execucao(
@@ -217,7 +220,10 @@ async def executar_coleta_indeed() -> dict[str, int]:
         }
 
     playwright = await async_playwright().start()
-    browser = await playwright.chromium.launch(headless=False)
+    browser = await playwright.chromium.launch(
+        headless=False,
+        executable_path=GOOGLE_CHROME_EXECUTABLE_PATH,
+    )
     context = await browser.new_context(
         viewport={"width": 1440, "height": 900},
         locale="pt-BR",
@@ -229,6 +235,10 @@ async def executar_coleta_indeed() -> dict[str, int]:
             for localidade in localidades:
                 try:
                     for page_index in range(MAX_PAGES_PER_COMBINATION):
+                        if should_stop and should_stop():
+                            interrompida = True
+                            break
+
                         search_url = _build_search_url(
                             titulo["titulo"],
                             localidade["localidade"],
@@ -241,29 +251,51 @@ async def executar_coleta_indeed() -> dict[str, int]:
                             break
 
                         for url in urls:
-                            vagas_encontradas += 1
-                            vaga_id, created = salvar_vaga(
-                                url=url,
-                                plataforma="indeed",
-                                titulo_busca_id=titulo["id"],
-                                localidade_busca_id=localidade["id"],
-                                execucao_robo_id=execucao_id,
-                            )
+                            if should_stop and should_stop():
+                                interrompida = True
+                                break
 
                             try:
+                                vagas_encontradas += 1
                                 dados_extraidos = await _extract_job_details(page, url)
-                                atualizar_dados_extraidos(vaga_id, **dados_extraidos)
-                            except Exception as exc:
-                                atualizar_dados_extraidos(
-                                    vaga_id,
-                                    url_acessivel=False,
-                                    erro_extracao=str(exc),
-                                )
+                                if not vaga_compativel_com_busca(
+                                    titulo["titulo"],
+                                    dados_extraidos.get("titulo_vaga"),
+                                    titulo.get("modo_correspondencia", "generica"),
+                                ):
+                                    continue
 
-                            if created:
-                                vagas_novas += 1
-                            else:
-                                vagas_duplicadas += 1
+                                vaga_id, created = salvar_vaga(
+                                    url=url,
+                                    plataforma="indeed",
+                                    titulo_busca_id=titulo["id"],
+                                    localidade_busca_id=localidade["id"],
+                                    execucao_robo_id=execucao_id,
+                                    titulo_vaga=dados_extraidos.get("titulo_vaga"),
+                                )
+                                atualizar_dados_extraidos(vaga_id, **dados_extraidos)
+
+                                if created:
+                                    vagas_novas += 1
+                                else:
+                                    vagas_duplicadas += 1
+                            except Exception as exc:
+                                houve_erro = True
+                                execucoes_repository.registrar_erro(
+                                    execucao_id=execucao_id,
+                                    titulo_busca_id=titulo["id"],
+                                    localidade_busca_id=localidade["id"],
+                                    mensagem_erro=f"Falha ao extrair vaga {url}: {exc}",
+                                )
+                            finally:
+                                if progress_callback is not None:
+                                    progress_callback(vagas_encontradas, vagas_novas)
+
+                        if interrompida:
+                            break
+
+                    if interrompida:
+                        break
 
                 except Exception as exc:
                     houve_erro = True
@@ -274,6 +306,9 @@ async def executar_coleta_indeed() -> dict[str, int]:
                         mensagem_erro=str(exc),
                     )
                     continue
+
+            if interrompida:
+                break
 
         status = "finalizada_com_erros" if houve_erro else "finalizada"
         execucoes_repository.finalizar_execucao(
@@ -287,6 +322,7 @@ async def executar_coleta_indeed() -> dict[str, int]:
             "vagas_encontradas": vagas_encontradas,
             "vagas_novas": vagas_novas,
             "vagas_duplicadas": vagas_duplicadas,
+            "interrompida": interrompida,
         }
     except Exception as exc:
         execucoes_repository.finalizar_execucao(

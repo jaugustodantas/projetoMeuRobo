@@ -90,8 +90,11 @@ para classificar vagas que já tenham descrição coletada.
 Também é possível rodar pelo terminal:
 
 ```bash
-meu-robo-avaliar-vagas --limit 20
+meu-robo-avaliar-vagas
 ```
+
+Por padrão, o comando avalia todas as vagas pendentes. Use `--limit 20` se quiser
+processar apenas um lote menor.
 
 ## Exportação
 

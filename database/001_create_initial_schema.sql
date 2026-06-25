@@ -9,10 +9,13 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS titulos_busca (
     id BIGSERIAL PRIMARY KEY,
     titulo TEXT NOT NULL,
+    modo_correspondencia TEXT NOT NULL DEFAULT 'generica',
     ativo BOOLEAN NOT NULL DEFAULT TRUE,
     criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT uq_titulos_busca_titulo UNIQUE (titulo)
+    CONSTRAINT uq_titulos_busca_titulo UNIQUE (titulo),
+    CONSTRAINT ck_titulos_busca_modo_correspondencia
+        CHECK (modo_correspondencia IN ('generica', 'exata'))
 );
 
 CREATE TABLE IF NOT EXISTS localidades_busca (
@@ -93,6 +96,9 @@ CREATE TABLE IF NOT EXISTS erros_execucao (
 
 CREATE INDEX IF NOT EXISTS idx_titulos_busca_ativo
     ON titulos_busca (ativo);
+
+CREATE INDEX IF NOT EXISTS idx_titulos_busca_modo_correspondencia
+    ON titulos_busca (modo_correspondencia);
 
 CREATE INDEX IF NOT EXISTS idx_localidades_busca_ativo
     ON localidades_busca (ativo);
