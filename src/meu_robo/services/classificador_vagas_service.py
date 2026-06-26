@@ -170,6 +170,12 @@ Antes de definir a nota, verifique internamente:
 4. As responsabilidades e a senioridade são compatíveis?
 5. A experiência do candidato é direta ou apenas transferível?
 
+Regras obrigatórias para a recomendação:
+- Nota 8 a 10: use "alta".
+- Nota 6 a 7: use "media", a menos que a descrição esteja incompleta ou contraditória.
+- Nota 1 a 5: use "descartar".
+- Só use "baixa" quando a vaga exigir revisão manual por dados incompletos, ambíguos ou contraditórios.
+
 Retorne somente o JSON solicitado.
 """.strip()
 
@@ -211,6 +217,20 @@ def _parse_avaliacao(response_data: dict) -> dict:
         raise ValueError(f"Nota fora da escala esperada: {nota}")
 
     return data
+
+
+def _normalizar_recomendacao(nota: int, recomendacao: str | None) -> str:
+    recomendacao_normalizada = (recomendacao or "").strip().lower()
+
+    if nota >= 8:
+        return "alta"
+
+    if nota >= 6:
+        if recomendacao_normalizada == "baixa":
+            return "baixa"
+        return "media"
+
+    return "descartar"
 
 
 def avaliar_vaga(vaga: dict, orientacao_agente: str, curriculo: str) -> None:
@@ -266,10 +286,13 @@ def avaliar_vaga(vaga: dict, orientacao_agente: str, curriculo: str) -> None:
         }
         data = _parse_avaliacao(_post_openai_response(payload))
 
+    nota = int(data["nota"])
+    recomendacao = _normalizar_recomendacao(nota, data.get("recomendacao"))
+
     atualizar_avaliacao_ia(
         vaga_id=int(vaga["id"]),
-        nota_aderencia=int(data["nota"]),
-        recomendacao_ia=data.get("recomendacao"),
+        nota_aderencia=nota,
+        recomendacao_ia=recomendacao,
         justificativa_ia=data.get("justificativa"),
         pontos_positivos_ia=_join_list(data.get("pontos_positivos", [])),
         pontos_alerta_ia=_join_list(data.get("pontos_alerta", [])),
